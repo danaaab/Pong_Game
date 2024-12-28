@@ -8,6 +8,7 @@ let context;
 let playerWidth = 10;
 let playerHeight = 50;
 let playerVelocityY = 0;
+let playerStep = 10; // Number of pixels to move per key press
 
 let player1 = {
     x : 10,
@@ -39,6 +40,7 @@ let ball = {
 
 let player1Score = 0;
 let player2Score = 0;
+let ballSpeedIncrement = 0.1; // Adjust this value as needed
 
 window.onload = function() {
     board = document.getElementById("board");
@@ -51,7 +53,8 @@ window.onload = function() {
     context.fillRect(player1.x, player1.y, playerWidth, playerHeight);
 
     requestAnimationFrame(update);
-    document.addEventListener("keyup", movePlayer);
+    document.addEventListener("keydown", movePlayer);
+    document.addEventListener("keyup", stopPlayer); // Add event listener for keyup
 }
 
 function update() {
@@ -64,7 +67,6 @@ function update() {
     if (!outOfBounds(nextPlayer1Y)) {
         player1.y = nextPlayer1Y;
     }
-    // player1.y += player1.velocityY;
     context.fillRect(player1.x, player1.y, playerWidth, playerHeight);
 
     // player2
@@ -72,7 +74,6 @@ function update() {
     if (!outOfBounds(nextPlayer2Y)) {
         player2.y = nextPlayer2Y;
     }
-    // player2.y += player2.velocityY;
     context.fillRect(player2.x, player2.y, playerWidth, playerHeight);
 
     // ball
@@ -82,27 +83,16 @@ function update() {
     context.fillRect(ball.x, ball.y, ballWidth, ballHeight);
 
     if (ball.y <= 0 || (ball.y + ballHeight >= boardHeight)) { 
-        // if ball touches top or bottom of canvas
-        ball.velocityY *= -1; //reverse direction
+        ball.velocityY *= -1; //reverse direction if ball touches top or bottom of canvas
     }
 
-    // if (ball.y <= 0) { 
-    //     // if ball touches top of canvas
-    //     ball.velocityY = 2; //go down
-    // }
-    // else if (ball.y + ballHeight >= boardHeight) {
-    //     // if ball touches bottom of canvas
-    //     ball.velocityY = -2; //go up
-    // }
-
-    //bounce the ball back
     if (detectCollision(ball, player1)) {
-        if (ball.x <= player1.x + player1.width) { //left side of ball touches right side of player 1 (left paddle)
+        if (ball.x <= player1.x + player1.width) {
             ball.velocityX *= -1;   // flip x direction
         }
     }
     else if (detectCollision(ball, player2)) {
-        if (ball.x + ballWidth >= player2.x) { //right side of ball touches left side of player 2 (right paddle)
+        if (ball.x + ballWidth >= player2.x) {
             ball.velocityX *= -1;   // flip x direction
         }
     }
@@ -123,8 +113,7 @@ function update() {
     context.fillText(player2Score, boardWidth*4/5 - 45, 45);
 
     // draw dotted line down the middle
-    for (let i = 10; i < board.height; i += 25) { //i = starting y Position, draw a square every 25 pixels down
-        // (x position = half of boardWidth (middle) - 10), i = y position, width = 5, height = 5
+    for (let i = 10; i < board.height; i += 25) {
         context.fillRect(board.width / 2 - 10, i, 5, 5); 
     }
 }
@@ -136,35 +125,42 @@ function outOfBounds(yPosition) {
 function movePlayer(e) {
     //player1
     if (e.code == "KeyW") {
-        player1.velocityY = -3;
+        player1.velocityY = -playerStep;
     }
     else if (e.code == "KeyS") {
-        player1.velocityY = 3;
+        player1.velocityY = playerStep;
     }
 
     //player2
     if (e.code == "ArrowUp") {
-        player2.velocityY = -3;
+        player2.velocityY = -playerStep;
     }
     else if (e.code == "ArrowDown") {
-        player2.velocityY = 3;
+        player2.velocityY = playerStep;
+    }
+}
+
+function stopPlayer(e) {
+    // Stop moving the paddles when the key is released
+    if (e.code == "KeyW" || e.code == "KeyS") {
+        player1.velocityY = 0;
+    }
+
+    if (e.code == "ArrowUp" || e.code == "ArrowDown") {
+        player2.velocityY = 0;
     }
 }
 
 function detectCollision(a, b) {
-    return a.x < b.x + b.width &&   //a's top left corner doesn't reach b's top right corner
-           a.x + a.width > b.x &&   //a's top right corner passes b's top left corner
-           a.y < b.y + b.height &&  //a's top left corner doesn't reach b's bottom left corner
-           a.y + a.height > b.y;    //a's bottom left corner passes b's top left corner
+    return a.x < b.x + b.width &&
+           a.x + a.width > b.x &&
+           a.y < b.y + b.height &&
+           a.y + a.height > b.y;
 }
 
 function resetGame(direction) {
-    ball = {
-        x : boardWidth/2,
-        y : boardHeight/2,
-        width: ballWidth,
-        height: ballHeight,
-        velocityX : direction,
-        velocityY : 2
-    }
+    ball.velocityX = direction * (Math.abs(ball.velocityX) + ballSpeedIncrement);
+    ball.velocityY += (ball.velocityY > 0 ? ballSpeedIncrement : -ballSpeedIncrement);
+    ball.x = boardWidth/2;
+    ball.y = boardHeight/2;
 }
